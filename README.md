@@ -24,7 +24,6 @@ python3 ./vcv-manifest-validator.py /home/cschol/src/Rack-1.0 /home/cschol/src/l
 
 ```
 python3 ./vcv-plugin-builder.py <RACK_SDK_PATH> <LIBRARY_REPO_ROOT> [--osxcrosslib OSXCROSS_LIB_ROOT] [--clean] [-p SPECIFIC_PLUGIN_TO_BUILD]
-
 ```
 
 Example:
@@ -36,4 +35,4 @@ python3 ./vcv-plugin-builder.py /home/cschol/src/Rack-SDK/Rack-SDK /home/cschol/
 ### Prerequisites
 
 - `mingw32` toolchain for cross-compilation of Windows binaries on GNU/Linux
-- `osxcross` toolchain for cross-compilation of Mac binaires on GNU/Linux
+- [`osxcross` toolchain](https://github.com/tpoechtrager/osxcross) for cross-compilation of Mac binaires on GNU/Linux
