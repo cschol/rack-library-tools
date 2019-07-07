@@ -52,6 +52,13 @@ def get_source_dir(root_dir, plugin_name):
     return os.path.join(root_dir, "repos", plugin_name)
 
 
+def run(cmd, dir, build_env):
+    return subprocess.check_output(cmd.split(" "),
+        env=build_env,
+        cwd=dir,
+        stderr=subprocess.STDOUT)
+
+
 def build_plugin(source_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_path=None, num_jobs=8, clean=False):
     output = None
 
@@ -75,10 +82,12 @@ def build_plugin(source_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_
             if which(PLATFORM_ENVS[platform][tool]) is None:
                 raise Exception("Toolchain component not found: %s" % PLATFORM_ENVS[platform][tool])
 
-        output = subprocess.check_output(["make", "-j%s" % num_jobs],
-            env=build_env,
-            cwd=source_dir,
-            stderr=subprocess.STDOUT)
+        make_cmd = "make -j%s" % num_jobs
+        output += run(f"{make_cmd} clean", source_dir, build_env)
+        output += run(f"{make_cmd} cleandep", source_dir, build_env)
+        output += run(f"{make_cmd} dep", source_dir, build_env)
+        output += run(f"{make_cmd} dist", source_dir, build_env)
+
     except subprocess.CalledProcessError as e:
         print("FAILED")
         print("\n%s" % e.output.strip().decode("UTF-8") if output else "No output")
