@@ -1,13 +1,16 @@
-# vcv-library-tools
+# VCV Library Tools
 
-Set of tools to manage VCV Rack `library` repository content.
+Set of tools to manage integration of plugins into the VCV Rack `library` repository.
+
+- vcv-manifest-validator.py
+- vcv-plugin-builder.py
 
 ## General Notes
 
 These tools are specifically written to run on **GNU/Linux**, which is the system I use mostly for integration of plugins in the Plugin Manager.
-These tools are written to operate on the Rack [library repository](https://github.com/VCVRack/library).
+These tools are written to operate on a local working copy of the Rack [library repository](https://github.com/VCVRack/library).
 
-## Manifest Validator
+## Manifest Validator - `vcv-manifest-validator.py`
 
 Script to automate batch and individual validation of `plugin.json` manifest(s).
 
@@ -34,7 +37,7 @@ python3 ./vcv-manifest-validator.py /home/cschol/src/Rack-1.0 /home/cschol/src/l
 - `--check-version` is optional and will check that the plugin version checked is different from the last committed version in the repository.
 
 
-## Plugin Builder
+## Plugin Builder - `vcv-plugin-builder.py`
 
 Script to support batch build and building individual plugins for (all) supported platforms out of the Rack [library repository](https://github.com/VCVRack/library).
 
