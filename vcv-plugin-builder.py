@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sys
 import os
 import argparse
@@ -9,7 +7,15 @@ import subprocess
 from shutil import which
 
 
-EXCLUDE_LIST = ["VCV-Recorder", "Befaco", "Fundamental"]
+# Plugins to be excluded from batch build for various reasons.
+EXCLUDE_LIST = [
+    "Core",
+    "VCV-Recorder",
+    "Befaco",
+    "Fundamental",
+    "StellareModular-Link",
+    "SurgeRack"
+]
 
 SUPPORTED_PLATFORMS = ["win", "mac", "linux"]
 
@@ -18,6 +24,7 @@ MAKE_ENV_WIN = {"CC": "x86_64-w64-mingw32-gcc", "CXX": "x86_64-w64-mingw32-g++",
 MAKE_ENV_MAC = {"CC": "x86_64-apple-darwin17-clang", "CXX": "x86_64-apple-darwin17-clang++", "STRIP": "x86_64-apple-darwin17-strip"}
 
 PLATFORM_ENVS = {"linux": MAKE_ENV_LINUX, "win": MAKE_ENV_WIN, "mac": MAKE_ENV_MAC}
+
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
@@ -32,29 +39,34 @@ def parse_args(argv):
     return parser.parse_args()
 
 
-def get_plugin_list(path):
+def get_open_source_plugin_list(path):
     plugins = []
     for p in glob.glob(os.path.join(path, "*.json")):
+        with open(p, 'r') as m:
+            if json.load(m)["license"].lower() == "proprietary": continue
         plugins.append(os.path.basename(p).split(".")[0])
-    return plugins
+    return sorted(plugins)
 
 
 def get_source_dir(root_dir, plugin_name):
     return os.path.join(root_dir, "repos", plugin_name)
 
 
-def build_plugin(root_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_path=None, num_jobs=8, clean=False):
+def build_plugin(source_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_path=None, num_jobs=8, clean=False):
     output = None
-    source_dir = get_source_dir(root_dir, plugin_name)
 
     try:
         if clean:
             output = subprocess.check_output(["git", "clean", "-dfx"],
                 cwd=source_dir,
                 stderr=subprocess.STDOUT)
+
+        # Set up build environment
         build_env = os.environ.copy()
         build_env["RACK_DIR"] = os.path.abspath(rack_sdk_path)
         build_env = {**build_env , **PLATFORM_ENVS[platform]}
+
+        # osxcross needs special handling to ensure proper linking
         if platform == "mac":
             build_env["LD_LIBRARY_PATH"] = os.path.abspath(osxcross_lib_path)
 
@@ -75,6 +87,7 @@ def build_plugin(root_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_pa
         print("FAILED")
         raise e
 
+
 def main(argv=None):
 
     try:
@@ -83,7 +96,7 @@ def main(argv=None):
         if args.plugin:
             plugins = [args.plugin]
         else:
-            plugins = get_plugin_list(os.path.join(args.root_dir, "manifests"))
+            plugins = get_open_source_plugin_list(os.path.join(args.root_dir, "manifests"))
 
         filt_plugins = [p for p in plugins if not p in EXCLUDE_LIST]
 
@@ -103,7 +116,8 @@ def main(argv=None):
             for plugin in filt_plugins:
                 try:
                     print("[%s] Building plugin on platform %s..." % (plugin, platform), end='', flush=True)
-                    build_plugin(args.root_dir, plugin, platform, args.rack_sdk_path, args.osxcrosslib, clean=args.clean)
+                    source_dir = get_source_dir(args.root_dir, plugin)
+                    build_plugin(source_dir, plugin, platform, args.rack_sdk_path, args.osxcrosslib, clean=args.clean)
                     print("OK")
                 except subprocess.CalledProcessError as e:
                     failed_plugins[plugin] = " ".join([failed_plugins[plugin], platform]) if plugin in failed_plugins.keys() else platform
@@ -118,6 +132,7 @@ def main(argv=None):
         print("Plugin build FAILED")
         print(e)
         return 1
+
 
 if __name__ == "__main__":
      sys.exit(main(sys.argv))

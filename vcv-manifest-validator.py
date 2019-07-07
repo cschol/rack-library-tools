@@ -52,7 +52,7 @@ def get_submodule_sha(plugin_root, plugin_path):
             cwd=plugin_root,
             stderr=subprocess.STDOUT)
         return output.strip().decode("UTF-8").split(" ")[1]
-    except Exception as e:
+    except Exception:
         return None
 
 
@@ -62,7 +62,7 @@ def get_plugin_head_sha(plugin_path):
             cwd=plugin_path,
             stderr=subprocess.STDOUT)
         return output.strip().decode("UTF-8")
-    except Exception as e:
+    except Exception:
         return None
 
 
@@ -73,7 +73,7 @@ def get_plugin_version(plugin_path, sha):
             stderr=subprocess.STDOUT)
         pj = json.loads(output.strip().decode("UTF-8"))
         return pj["version"]
-    except Exception as e:
+    except Exception:
         raise
 
 
@@ -130,7 +130,7 @@ def validate_url(url):
         conn.request('HEAD', p.path)
         resp = conn.getresponse()
         return resp.status >= 400
-    except Exception as e:
+    except Exception:
         return 1
 
 
@@ -186,7 +186,6 @@ def main(argv=None):
                 # Validate module entries
                 modules = plugin_json["modules"]
 
-                invalid_tags = {}
                 invalid_tag = False
                 invalid_slug = False
                 for module in modules:
@@ -273,6 +272,7 @@ def main(argv=None):
     except Exception as e:
         print("ERROR: %s" % e)
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
