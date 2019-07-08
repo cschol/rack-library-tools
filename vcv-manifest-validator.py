@@ -41,6 +41,7 @@ def parse_args(argv):
     parser.add_argument("rack_root", help="Root directory of Rack source code", type=str)
     parser.add_argument("plugin_root" , help="Root directory of plugins, e.g. library repo root", type=str)
     parser.add_argument("-p" , "--plugin", help="Specific plugin to validate", type=str)
+    parser.add_argument("--slugsfile", help="File containing known module slugs", type=str)
     parser.add_argument("--check-version", help="Check plugin version against last known version in repository", action='store_true')
 
     return parser.parse_args()
@@ -134,11 +135,27 @@ def validate_url(url):
         return 1
 
 
-def validate_module_slug(slug):
+def validate_slug(slug):
     for c in slug:
         if not (c.isalnum() or c == '-' or c == '_'):
             return 1
     return 0
+
+
+def read_slugs_file(db_file):
+    content = None
+    with open(db_file, 'r') as f:
+        content = f.readlines()
+    return content
+
+
+def find_slug(slug, known_slugs):
+    looking_for_slug = True
+    for line in known_slugs:
+        if slug in line:
+            looking_for_slug = False
+            break
+    return looking_for_slug
 
 
 def main(argv=None):
@@ -146,15 +163,23 @@ def main(argv=None):
     args = parse_args(argv)
     rack_root = args.rack_root
     plugin_root = args.plugin_root
+    slugs_file = args.slugsfile
 
     try:
 
         failed = False
+        known_slugs = None
 
         if not os.path.exists(rack_root):
             raise Exception("Invalid Rack root: %s" % rack_root)
         if not os.path.exists(plugin_root):
             raise Exception("Invalid Plugin root: %s" % plugin_root)
+
+        if args.slugsfile:
+            if not os.path.exists(args.slugsfile):
+                raise Exception("Invalid slugs file: %s" % slugs_file)
+            else:
+                known_slugs = read_slugs_file(slugs_file)
 
         if args.plugin:
             plugins = [os.path.join(plugin_root, args.plugin)]
@@ -183,6 +208,17 @@ def main(argv=None):
                         output.append("Missing key: %s" % key)
                         failed = True
 
+                # Validate plugin slug
+                if validate_slug(plugin_json["slug"]):
+                    output.append("%s: invalid plugin slug" % (plugin_json["slug"]))
+                    failed = True
+
+                # Check if plugin slug has changed compared to last known 0.6 version
+                if args.slugsfile:
+                    if find_slug(plugin_json["slug"], known_slugs):
+                        output.append("%s: plugin slug flagged" % plugin_json["slug"])
+                        failed = True
+
                 # Validate module entries
                 modules = plugin_json["modules"]
 
@@ -202,14 +238,20 @@ def main(argv=None):
                     if "tags" in module.keys():
                         res = validate_tags(module["tags"], valid_tags)
                         if res:
-                            output.append("%s: invalid tags: %s" % (module["slug"], ", ".join(res)))
+                            output.append("%s: invalid module tags: %s" % (module["slug"], ", ".join(res)))
                             invalid_tag = True
 
                     # Validate slugs
                     if "slug" in module.keys():
-                        if validate_module_slug(module["slug"]):
-                            output.append("%s: invalid slug" % (module["slug"]))
+                        if validate_slug(module["slug"]):
+                            output.append("%s: invalid module slug" % (module["slug"]))
                             invalid_slug = True
+
+                        # Check if module slug has changed compared to last known 0.6 version
+                        if args.slugsfile:
+                            if find_slug(module["slug"], known_slugs):
+                                output.append("%s: module slug flagged" % module["slug"])
+                                failed = True
 
                 if invalid_tag:
                     output.append("-- Valid tags are defined in https://github.com/VCVRack/Rack/blob/v1/src/plugin.cpp#L534")
