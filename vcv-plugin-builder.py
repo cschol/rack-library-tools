@@ -49,7 +49,11 @@ def get_open_source_plugin_list(path):
 
 
 def get_source_dir(root_dir, plugin_name):
-    return os.path.join(root_dir, "repos", plugin_name)
+    # If 'repos' directory exists in root_dir we assume we are in a 'library' repo checkout.
+    if os.path.exists(os.path.join(root_dir, "repos")):
+        return os.path.join(root_dir, "repos", plugin_name)
+    else: # just use the root_dir as a folder containing the plugin subfolder.
+        return os.path.join(root_dir, plugin_name)
 
 
 def run(cmd, dir, build_env):
@@ -104,10 +108,10 @@ def main(argv=None):
 
         if args.plugin:
             plugins = [args.plugin]
+            filt_plugins = plugins
         else:
             plugins = get_open_source_plugin_list(os.path.join(args.root_dir, "manifests"))
-
-        filt_plugins = [p for p in plugins if not p in EXCLUDE_LIST]
+            filt_plugins = [p for p in plugins if not p in EXCLUDE_LIST]
 
         failed_plugins = {}
 
