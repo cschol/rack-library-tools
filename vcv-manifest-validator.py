@@ -5,10 +5,12 @@ import json
 import traceback
 import glob
 import subprocess
+import requests
 
 
 URL_KEYS = ["pluginUrl", "authorUrl", "manualUrl", "sourceUrl", "changelogUrl"]
 SPDX_URL = "https://raw.githubusercontent.com/spdx/license-list-data/master/json/licenses.json"
+RACK_PLUGIN_CPP_URL = "https://raw.githubusercontent.com/VCVRack/Rack/v1/src/plugin.cpp"
 
 
 REQUIRED_TOP_LEVEL_KEYS = [
@@ -38,7 +40,6 @@ REQUIRED_MODULE_KEYS = [
 def parse_args(argv):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("rack_root", help="Root directory of Rack source code", type=str)
     parser.add_argument("plugin_root" , help="Root directory of plugins, e.g. library repo root", type=str)
     parser.add_argument("-p" , "--plugin", help="Specific plugin to validate", type=str)
     parser.add_argument("--slugsfile", help="File containing known module slugs", type=str)
@@ -78,30 +79,28 @@ def get_plugin_version(plugin_path, sha):
         raise
 
 
-def get_valid_tags(rack_root):
-    PLUGIN_CPP = os.path.join(rack_root, "src/plugin.cpp")
+def get_valid_tags():
+    plugin_cpp = requests.get(RACK_PLUGIN_CPP_URL).text
     tags = []
-    with open(PLUGIN_CPP, 'r') as f:
-        cpp = f.readlines()
-        capture_tags = False
-        capture_aliases = False
-        for line in cpp:
-            if "allowedTags" in line.strip():
-                capture_tags = True
-                continue
-            if capture_tags and line.strip() == "};":
-                capture_tags = False
-                continue
-            if capture_tags:
-                tags.append(line.strip().split(",")[0].replace('"','').lower())
-            if "tagAliases" in line.strip():
-                capture_aliases = True
-                continue
-            if capture_aliases and line.strip() == "};":
-                capture_aliases = False
-                continue
-            if capture_aliases:
-                tags.append(line.strip().split(",")[0].replace('{','').replace('"','').lower())
+    capture_tags = False
+    capture_aliases = False
+    for line in plugin_cpp.split("\n"):
+        if "allowedTags" in line.strip():
+            capture_tags = True
+            continue
+        if capture_tags and line.strip() == "};":
+            capture_tags = False
+            continue
+        if capture_tags:
+            tags.append(line.strip().split(",")[0].replace('"','').lower())
+        if "tagAliases" in line.strip():
+            capture_aliases = True
+            continue
+        if capture_aliases and line.strip() == "};":
+            capture_aliases = False
+            continue
+        if capture_aliases:
+            tags.append(line.strip().split(",")[0].replace('{','').replace('"','').lower())
     return tags
 
 
@@ -161,7 +160,6 @@ def find_slug(slug, known_slugs):
 def main(argv=None):
 
     args = parse_args(argv)
-    rack_root = args.rack_root
     plugin_root = args.plugin_root
     slugs_file = args.slugsfile
 
@@ -170,8 +168,6 @@ def main(argv=None):
         failed = False
         known_slugs = None
 
-        if not os.path.exists(rack_root):
-            raise Exception("Invalid Rack root: %s" % rack_root)
         if not os.path.exists(plugin_root):
             raise Exception("Invalid Plugin root: %s" % plugin_root)
 
@@ -199,7 +195,7 @@ def main(argv=None):
                 with open(manifest, 'r') as p:
                     plugin_json = json.load(p)
 
-                valid_tags = get_valid_tags(rack_root)
+                valid_tags = get_valid_tags()
                 valid_license_ids = get_spdx_license_ids()
 
                 # Validate top-level manifest keys
