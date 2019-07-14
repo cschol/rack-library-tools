@@ -171,6 +171,11 @@ def main(argv=None):
         if not os.path.exists(plugin_root):
             raise Exception("Invalid Plugin root: %s" % plugin_root)
 
+        # Adjust plugin_root if we are in the library repository.
+        repos_path = os.path.join(plugin_root, "repos")
+        if os.path.exists(repos_path):
+            plugin_root = repos_path
+
         if args.slugsfile:
             if not os.path.exists(args.slugsfile):
                 raise Exception("Invalid slugs file: %s" % slugs_file)
