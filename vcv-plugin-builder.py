@@ -63,6 +63,22 @@ def run(cmd, dir, build_env):
         stderr=subprocess.STDOUT)
 
 
+def update_source(source_dir):
+    output = None
+
+    try:
+        update_cmd = "git submodule update --init --recursive"
+        output = run(update_cmd, source_dir, {})
+        return output
+    except subprocess.CalledProcessError as e:
+        print("FAILED")
+        print("\n%s" % e.output.strip().decode("UTF-8") if output else "No output")
+        raise e
+    except Exception as e:
+        print("FAILED")
+        raise e
+
+
 def build_plugin(source_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_path=None, num_jobs=8, clean=False):
     output = None
 
@@ -89,6 +105,10 @@ def build_plugin(source_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_
         make_cmd = "make -j%s" % num_jobs
         output += run(f"{make_cmd} clean", source_dir, build_env)
         output += run(f"{make_cmd} cleandep", source_dir, build_env)
+
+        # Ensure that all submodules are present
+        output += update_source(source_dir)
+
         output += run(f"{make_cmd} dep", source_dir, build_env)
         output += run(f"{make_cmd} dist", source_dir, build_env)
 
@@ -128,8 +148,8 @@ def main(argv=None):
         for platform in platforms:
             for plugin in filt_plugins:
                 try:
-                    print("[%s] Building plugin on platform %s..." % (plugin, platform), end='', flush=True)
                     source_dir = get_source_dir(args.root_dir, plugin)
+                    print("[%s] Building plugin on platform %s..." % (plugin, platform), end='', flush=True)
                     build_plugin(source_dir, plugin, platform, args.rack_sdk_path, args.osxcrosslib, clean=args.clean)
                     print("OK")
                 except subprocess.CalledProcessError as e:

@@ -10,7 +10,7 @@ import requests
 
 URL_KEYS = ["pluginUrl", "authorUrl", "manualUrl", "sourceUrl", "changelogUrl"]
 SPDX_URL = "https://raw.githubusercontent.com/spdx/license-list-data/master/json/licenses.json"
-RACK_PLUGIN_CPP_URL = "https://raw.githubusercontent.com/VCVRack/Rack/v1/src/plugin.cpp"
+RACK_TAG_CPP_URL = "https://raw.githubusercontent.com/VCVRack/Rack/v1/src/tag.cpp"
 
 
 REQUIRED_TOP_LEVEL_KEYS = [
@@ -80,27 +80,19 @@ def get_plugin_version(plugin_path, sha):
 
 
 def get_valid_tags():
-    plugin_cpp = requests.get(RACK_PLUGIN_CPP_URL).text
+    tag_cpp = requests.get(RACK_TAG_CPP_URL).text
     tags = []
     capture_tags = False
-    capture_aliases = False
-    for line in plugin_cpp.split("\n"):
-        if "allowedTags" in line.strip():
+    for line in tag_cpp.split("\n"):
+        if "tagAliases" in line.strip():
             capture_tags = True
             continue
         if capture_tags and line.strip() == "};":
             capture_tags = False
-            continue
+            break
         if capture_tags:
-            tags.append(line.strip().split(",")[0].replace('"','').lower())
-        if "tagAliases" in line.strip():
-            capture_aliases = True
-            continue
-        if capture_aliases and line.strip() == "};":
-            capture_aliases = False
-            continue
-        if capture_aliases:
-            tags.append(line.strip().split(",")[0].replace('{','').replace('"','').lower())
+            for t in line.strip().split("}")[0].split(","):
+                tags.append(t.strip().replace('{','').replace('"','').lower())
     return tags
 
 
