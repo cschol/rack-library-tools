@@ -247,7 +247,7 @@ def main(argv=None):
                                 failed = True
 
                 if invalid_tag:
-                    output.append("-- Valid tags are defined in https://github.com/VCVRack/Rack/blob/v1/src/plugin.cpp#L534")
+                    output.append("-- Valid tags are defined in https://github.com/VCVRack/Rack/blob/v1/src/tag.cpp")
                     failed = True
 
                 if invalid_slug:
