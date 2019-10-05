@@ -12,7 +12,6 @@ URL_KEYS = ["pluginUrl", "authorUrl", "manualUrl", "sourceUrl", "changelogUrl"]
 SPDX_URL = "https://raw.githubusercontent.com/spdx/license-list-data/master/json/licenses.json"
 RACK_TAG_CPP_URL = "https://raw.githubusercontent.com/VCVRack/Rack/v1/src/tag.cpp"
 
-
 REQUIRED_TOP_LEVEL_KEYS = [
     "slug",
     "name",
@@ -247,7 +246,7 @@ def main(argv=None):
                                 failed = True
 
                 if invalid_tag:
-                    output.append("-- Valid tags are defined in https://github.com/VCVRack/Rack/blob/v1/src/tag.cpp")
+                    output.append("-- Valid tags are defined in %s" % RACK_TAG_CPP_URL)
                     failed = True
 
                 if invalid_slug:
