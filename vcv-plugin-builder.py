@@ -13,8 +13,7 @@ EXCLUDE_LIST = [
     "VCV-Recorder",
     "Befaco",
     "Fundamental",
-    "StellareModular-Link",
-    "SurgeRack"
+    "StellareModular-Link"
 ]
 
 SUPPORTED_PLATFORMS = ["win", "mac", "linux"]
@@ -103,14 +102,14 @@ def build_plugin(source_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_
                 raise Exception("Toolchain component not found: %s" % PLATFORM_ENVS[platform][tool])
 
         make_cmd = "make -j%s" % num_jobs
-        output += run(f"{make_cmd} clean", source_dir, build_env)
-        output += run(f"{make_cmd} cleandep", source_dir, build_env)
+        output += run("%s clean" % make_cmd, source_dir, build_env)
+        output += run("%s cleandep" % make_cmd, source_dir, build_env)
 
         # Ensure that all submodules are present
         output += update_source(source_dir)
 
-        output += run(f"{make_cmd} dep", source_dir, build_env)
-        output += run(f"{make_cmd} dist", source_dir, build_env)
+        output += run("%s dep" % make_cmd, source_dir, build_env)
+        output += run("%s dist" % make_cmd, source_dir, build_env)
 
     except subprocess.CalledProcessError as e:
         print("FAILED")
