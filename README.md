@@ -1,6 +1,6 @@
 # VCV Library Tools
 
-Set of tools to manage integration of plugins into the VCV Rack `library` repository.
+Set of tools I use to manage integration of plugins into the VCV Rack `library` repository.
 
 - vcv-manifest-validator.py
 - vcv-plugin-builder.py
@@ -9,6 +9,11 @@ Set of tools to manage integration of plugins into the VCV Rack `library` reposi
 
 These tools are specifically written to run on **GNU/Linux**, which is the system I use mostly for integration of plugins in the Plugin Manager.
 These tools are written to operate on a local working copy of the Rack [library repository](https://github.com/VCVRack/library).
+
+The `Linux` platform is build in a `Docker` container to ensure compatibility with the Rack build system.
+
+The `Dockerfile` contains the recipe to build the Docker image, which can be used to build the Linux platform.
+See section below on how to build the Docker image.
 
 ## Manifest Validator - `vcv-manifest-validator.py`
 
@@ -63,8 +68,23 @@ python3 ./vcv-plugin-builder.py /home/cschol/src/Rack-SDK/Rack-SDK /home/cschol/
 
 - `--clean` is optional and will **clean out** the repository before building (using `git clean -dfx`, *here be dragons*!)
 
+### Building the Linux Docker image
+
+Build the `Linux` Docker image with the following command:
+
+```
+docker build --build-arg UNAME=${USER} . -t vcvrack/linux-plugin-build
+```
+
+See the `build.sh` script in this repository for an example on how to invoke the Docker image to create a build container.
+
+### build.sh script
+
+The `build.sh` script contains an **example** on how to script the build process for all platforms.
+It is **my script** that I use for building the plugins during integration. *YMMV*.
 
 ### Prerequisites
 
+- `Docker` for Linux build
 - `mingw32` toolchain for cross-compilation of Windows binaries on GNU/Linux
 - [`osxcross` toolchain](https://github.com/tpoechtrager/osxcross) for cross-compilation of Mac binaires on GNU/Linux
