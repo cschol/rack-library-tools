@@ -2,8 +2,6 @@
 
 # EXAMPLE build script to build plugin for all platforms and validate plugin manifest.
 
-set -e
-
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 # Root directory of the plugin repository (e.g. library-v1/repos or Rack/plugins)
