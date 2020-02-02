@@ -4,6 +4,7 @@ import argparse
 import json
 import glob
 import subprocess
+import traceback
 from shutil import which
 
 
@@ -18,20 +19,12 @@ EXCLUDE_LIST = [
 
 SUPPORTED_PLATFORMS = ["win", "mac", "linux"]
 
-MAKE_ENV_LINUX = {"CC": "gcc", "CXX": "g++"}
-MAKE_ENV_WIN = {"CC": "x86_64-w64-mingw32-gcc", "CXX": "x86_64-w64-mingw32-g++", "STRIP": "x86_64-w64-mingw32-strip"}
-MAKE_ENV_MAC = {"CC": "x86_64-apple-darwin17-clang", "CXX": "x86_64-apple-darwin17-clang++", "STRIP": "x86_64-apple-darwin17-strip"}
-
-PLATFORM_ENVS = {"linux": MAKE_ENV_LINUX, "win": MAKE_ENV_WIN, "mac": MAKE_ENV_MAC}
-
-
 def parse_args(argv):
     parser = argparse.ArgumentParser()
 
     parser.add_argument("rack_sdk_path", help="Path to Rack SDK", type=str)
     parser.add_argument("root_dir", help="Root directory of library repository", type=str)
-    parser.add_argument("-p" , "--plugin", help="Specific plugin to validate", type=str)
-    parser.add_argument("--clean" , action='store_true', help="Perform make clean before building", default=False)
+    parser.add_argument("-p" , "--plugin", help="Specific plugin to build", type=str)
     parser.add_argument("--osxcrosslib", help="Lib directory of osxcross", type=str)
     parser.add_argument("--platforms", nargs='+', help="List of specific platforms to build (white-space separated)", type=str)
 
@@ -78,28 +71,17 @@ def update_source(source_dir):
         raise e
 
 
-def build_plugin(source_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_path=None, num_jobs=8, clean=False):
-    output = None
+def build_plugin(source_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_path=None, num_jobs=8):
+    output = bytes()
 
     try:
-        if clean:
-            output = subprocess.check_output(["git", "clean", "-dfx"],
-                cwd=source_dir,
-                stderr=subprocess.STDOUT)
-
         # Set up build environment
         build_env = os.environ.copy()
         build_env["RACK_DIR"] = os.path.abspath(rack_sdk_path)
-        build_env = {**build_env , **PLATFORM_ENVS[platform]}
 
         # osxcross needs special handling to ensure proper linking
         if platform == "mac":
             build_env["LD_LIBRARY_PATH"] = os.path.abspath(osxcross_lib_path)
-
-        # Sanity check availability of tool chain
-        for tool in PLATFORM_ENVS[platform].keys():
-            if which(PLATFORM_ENVS[platform][tool]) is None:
-                raise Exception("Toolchain component not found: %s" % PLATFORM_ENVS[platform][tool])
 
         make_cmd = "make -j%s" % num_jobs
         output += run("%s clean" % make_cmd, source_dir, build_env)
@@ -149,9 +131,9 @@ def main(argv=None):
                 try:
                     source_dir = get_source_dir(args.root_dir, plugin)
                     print("[%s] Building plugin on platform %s..." % (plugin, platform), end='', flush=True)
-                    build_plugin(source_dir, plugin, platform, args.rack_sdk_path, args.osxcrosslib, clean=args.clean)
+                    build_plugin(source_dir, plugin, platform, args.rack_sdk_path, args.osxcrosslib)
                     print("OK")
-                except subprocess.CalledProcessError as e:
+                except subprocess.CalledProcessError:
                     failed_plugins[plugin] = " ".join([failed_plugins[plugin], platform]) if plugin in failed_plugins.keys() else platform
 
         if failed_plugins: print("\n>>> BUILD FAILURES:")
@@ -162,7 +144,7 @@ def main(argv=None):
 
     except Exception as e:
         print("Plugin build FAILED")
-        print(e)
+        print(traceback.format_exc())
         return 1
 
 

@@ -17,14 +17,21 @@ OSXCROSS=/home/cschol/src/osxcross
 RACK_SDK=/home/cschol/src/Rack-SDK/Rack-SDK
 
 # Windows
-python3 ${SCRIPTPATH}/vcv-plugin-builder.py ${RACK_SDK} ${PLUGIN_ROOT} --clean -p ${PLUGIN_NAME} --platforms win
+export CC=x86_64-w64-mingw32-gcc
+export CXX=x86_64-w64-mingw32-g++
+export STRIP=x86_64-w64-mingw32-strip
+python3 ${SCRIPTPATH}/vcv-plugin-builder.py ${RACK_SDK} ${PLUGIN_ROOT} -p ${PLUGIN_NAME} --platforms win
 
 # Mac
-python3 ${SCRIPTPATH}/vcv-plugin-builder.py ${RACK_SDK} ${PLUGIN_ROOT} --osxcrosslib ${OSXCROSS}/target/lib --clean -p ${PLUGIN_NAME} --platforms mac
+export CC=x86_64-apple-darwin17-clang
+export CXX=x86_64-apple-darwin17-clang++
+export STRIP=x86_64-apple-darwin17-strip
+python3 ${SCRIPTPATH}/vcv-plugin-builder.py ${RACK_SDK} ${PLUGIN_ROOT} --osxcrosslib ${OSXCROSS}/target/lib -p ${PLUGIN_NAME} --platforms mac
 
 # Linux
-docker run -v ${RACK_SDK}:/workdir/Rack-SDK -v ${PLUGIN_ROOT}:/workdir/repos -v ${PWD}:/workdir vcvrack/linux-plugin-build /bin/bash -c "/usr/bin/python3 /workdir/vcv-plugin-builder.py /workdir/Rack-SDK /workdir/repos --clean -p ${PLUGIN_NAME} --platforms linux"
+export CC=gcc
+export CXX=g++
+docker run -v ${RACK_SDK}:/workdir/Rack-SDK -v ${PLUGIN_ROOT}:/workdir/repos -v ${PWD}:/workdir vcvrack/linux-plugin-build /bin/bash -c "/usr/bin/python3 /workdir/vcv-plugin-builder.py /workdir/Rack-SDK /workdir/repos -p ${PLUGIN_NAME} --platforms linux"
 
 # Validate manifest
 python3 ${SCRIPTPATH}/vcv-manifest-validator.py ${PLUGIN_ROOT} -p ${PLUGIN_NAME} --check-version
-
