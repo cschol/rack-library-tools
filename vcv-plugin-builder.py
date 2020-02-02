@@ -5,7 +5,6 @@ import json
 import glob
 import subprocess
 import traceback
-from shutil import which
 
 
 # Plugins to be excluded from batch build for various reasons.
@@ -22,10 +21,8 @@ SUPPORTED_PLATFORMS = ["win", "mac", "linux"]
 def parse_args(argv):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("rack_sdk_path", help="Path to Rack SDK", type=str)
-    parser.add_argument("root_dir", help="Root directory of library repository", type=str)
-    parser.add_argument("-p" , "--plugin", help="Specific plugin to build", type=str)
-    parser.add_argument("--osxcrosslib", help="Lib directory of osxcross", type=str)
+    parser.add_argument("root_dir", help="Root directory containing one (or more) plugins", type=str)
+    parser.add_argument("-p" , "--plugin", help="Name of plugin to build", type=str)
     parser.add_argument("--platforms", nargs='+', help="List of specific platforms to build (white-space separated)", type=str)
 
     return parser.parse_args()
@@ -51,8 +48,7 @@ def get_source_dir(root_dir, plugin_name):
 def run(cmd, dir, build_env):
     return subprocess.check_output(cmd.split(" "),
         env=build_env,
-        cwd=dir,
-        stderr=subprocess.STDOUT)
+        cwd=dir)
 
 
 def update_source(source_dir):
@@ -71,22 +67,16 @@ def update_source(source_dir):
         raise e
 
 
-def build_plugin(source_dir, plugin_name, platform, rack_sdk_path, osxcross_lib_path=None, num_jobs=8):
+def build_plugin(source_dir, plugin_name, platform, num_jobs=8):
     output = bytes()
 
     try:
         # Set up build environment
         build_env = os.environ.copy()
-        build_env["RACK_DIR"] = os.path.abspath(rack_sdk_path)
-
-        # osxcross needs special handling to ensure proper linking
-        if platform == "mac":
-            build_env["LD_LIBRARY_PATH"] = os.path.abspath(osxcross_lib_path)
 
         make_cmd = "make -j%s" % num_jobs
         output += run("%s clean" % make_cmd, source_dir, build_env)
         output += run("%s cleandep" % make_cmd, source_dir, build_env)
-
         # Ensure that all submodules are present
         output += update_source(source_dir)
 
@@ -131,7 +121,7 @@ def main(argv=None):
                 try:
                     source_dir = get_source_dir(args.root_dir, plugin)
                     print("[%s] Building plugin on platform %s..." % (plugin, platform), end='', flush=True)
-                    build_plugin(source_dir, plugin, platform, args.rack_sdk_path, args.osxcrosslib)
+                    build_plugin(source_dir, plugin, platform)
                     print("OK")
                 except subprocess.CalledProcessError:
                     failed_plugins[plugin] = " ".join([failed_plugins[plugin], platform]) if plugin in failed_plugins.keys() else platform
@@ -142,7 +132,7 @@ def main(argv=None):
 
         return 1 if failed_plugins else 0
 
-    except Exception as e:
+    except Exception:
         print("Plugin build FAILED")
         print(traceback.format_exc())
         return 1
