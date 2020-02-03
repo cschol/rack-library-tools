@@ -173,10 +173,11 @@ def main(argv=None):
             plugin_name = os.path.basename(os.path.abspath(plugin_path)) # from path
             print("[%s] Validating plugin.json..." % plugin_name, end='', flush=True)
 
+            plugin_json = None
+            failed = False
+            output = []
+
             try:
-                plugin_json = None
-                failed = False
-                output = []
 
                 if not os.path.exists(plugin_path):
                     raise Exception("Invalid plugin path: %s" % plugin_path)
@@ -292,6 +293,8 @@ def main(argv=None):
                 print("[%s] Issues found in `plugin.json`:\n" % plugin_name)
                 print("\n".join(output))
                 print()
+            elif plugin_json == None:
+                print("No plugin.json found")
             else:
                 print("OK")
 
