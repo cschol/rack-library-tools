@@ -17,22 +17,13 @@ REQUIRED_TOP_LEVEL_KEYS = [
     "name",
     "version",
     "license",
-    "author",
-    "brand",
-    "authorEmail",
-    "authorUrl",
-    "pluginUrl",
-    "manualUrl",
-    "sourceUrl",
-    "modules"
+    "author"
 ]
 
 
 REQUIRED_MODULE_KEYS = [
     "slug",
-    "name",
-    "description",
-    "tags"
+    "name"
 ]
 
 
@@ -179,6 +170,9 @@ def main(argv=None):
             plugins = glob.glob(plugin_root+"/*")
 
         for plugin_path in sorted(plugins):
+            plugin_name = os.path.basename(os.path.abspath(plugin_path)) # from path
+            print("[%s] Validating plugin.json..." % plugin_name, end='', flush=True)
+
             try:
                 plugin_json = None
                 failed = False
@@ -293,13 +287,13 @@ def main(argv=None):
                 output.append("ERROR: %s" % e)
                 failed = True
 
-            plugin_name = os.path.basename(os.path.abspath(plugin_path)) # from path
             if failed:
+                print("FAILED")
                 print("[%s] Issues found in `plugin.json`:\n" % plugin_name)
                 print("\n".join(output))
                 print()
             else:
-                print("[%s] Manifest validation...OK" % plugin_name)
+                print("OK")
 
         return 1 if failed else 0
 
