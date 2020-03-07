@@ -74,6 +74,11 @@ def build_plugin(source_dir, plugin_name, platform, num_jobs=8):
         # Set up build environment
         build_env = os.environ.copy()
 
+        # Clean repository before building
+        output += subprocess.check_output(["git", "clean", "-dfx"],
+            cwd=source_dir,
+            stderr=subprocess.STDOUT)
+
         make_cmd = "make -j%s" % num_jobs
         output += run("%s clean" % make_cmd, source_dir, build_env)
         output += run("%s cleandep" % make_cmd, source_dir, build_env)
