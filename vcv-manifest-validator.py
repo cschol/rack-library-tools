@@ -6,7 +6,6 @@ import traceback
 import glob
 import subprocess
 import requests
-from pathlib import Path
 
 
 URL_KEYS = ["pluginUrl", "authorUrl", "manualUrl", "sourceUrl", "changelogUrl"]
@@ -227,7 +226,7 @@ def main(argv=None):
 
                 # Additional validations based on previous versions of the plugin.
                 # Only applies if the repository is a submodule with a previously recorded SHA.
-                if os.path.exists(os.path.join(Path(plugin_root).parent, ".gitmodules")):
+                if os.path.exists(os.path.join(os.path.dirname(plugin_root), ".gitmodules")):
                     submodule_sha = get_submodule_sha(plugin_root, plugin_path)
                     # If this is a new plugin or a newly migrated plugin, plugin.json does not exist in an old version
                     if submodule_sha:
