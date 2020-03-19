@@ -233,11 +233,14 @@ def main(argv=None):
                         head_sha = get_plugin_head_sha(plugin_path)
 
                         # Validate plugin version has been updated.
-                        old_version = get_plugin_version(plugin_path, submodule_sha)
-                        new_version = get_plugin_version(plugin_path, head_sha)
-                        if old_version == new_version:
-                            output.append("Version needs update! Current version: %s" % old_version)
-                            failed = True
+                        try:
+                            old_version = get_plugin_version(plugin_path, submodule_sha)
+                            new_version = get_plugin_version(plugin_path, head_sha)
+                            if old_version == new_version:
+                                output.append("Version needs update! Current version: %s" % old_version)
+                                failed = True
+                        except Exception as e:
+                            pass # Skip if no previous version available.
 
                         # Validate plugins slugs have not changed or module was not removed.
                         diff = get_manifest_diff(plugin_path, submodule_sha, head_sha)
