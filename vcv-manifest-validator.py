@@ -115,7 +115,8 @@ def validate_url(url):
         conn.request('HEAD', p.path)
         resp = conn.getresponse()
         return resp.status >= 400
-    except Exception:
+    except Exception as e:
+        print("\nException validating URL: %s (%s)" % (url, e))
         return 1
 
 
@@ -276,7 +277,7 @@ def main(argv=None):
         return 1 if failed else 0
 
     except Exception as e:
-        print("ERROR: %s" % e)
+        print("\nERROR: %s" % e)
         return 1
 
 
