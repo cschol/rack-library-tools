@@ -20,9 +20,10 @@ STRIP=x86_64-w64-mingw32-strip \
 python3 ${SCRIPTPATH}/vcv-plugin-builder.py ${PLUGIN_ROOT} -p ${PLUGIN_NAME} --platforms win
 
 # Mac
-CC=/home/cschol/src/osxcross/target/bin/x86_64-apple-darwin17-clang \
-CXX=/home/cschol/src/osxcross/target/bin/x86_64-apple-darwin17-clang++ \
-STRIP=/home/cschol/src/osxcross/target/bin/x86_64-apple-darwin17-strip \
+PATH=${PATH}:/home/cschol/src/osxcross/target/bin \
+CC=x86_64-apple-darwin17-clang \
+CXX=x86_64-apple-darwin17-clang++ \
+STRIP=x86_64-apple-darwin17-strip \
 LD_LIBRARY_PATH="/home/cschol/src/osxcross/target/lib" \
 python3 ${SCRIPTPATH}/vcv-plugin-builder.py ${PLUGIN_ROOT} -p ${PLUGIN_NAME} --platforms mac
 
