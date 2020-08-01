@@ -27,6 +27,11 @@ REQUIRED_MODULE_KEYS = [
 ]
 
 
+INVALID_LICENSE_IDS = [
+    "GPL-3.0"
+]
+
+
 def parse_args(argv):
     parser = argparse.ArgumentParser()
 
@@ -90,6 +95,10 @@ def get_spdx_license_ids():
         requests.get(SPDX_URL).text
         )
     return [license["licenseId"] for license in license_json["licenses"]]
+
+
+def validate_license_id(valid_license_ids, license_id):
+    return (license_id not in valid_license_ids and license_id in INVALID_LICENSE_IDS)
 
 
 def get_manifest_diff(repo_path, submodule_sha, head_sha):
@@ -220,7 +229,8 @@ def main(argv=None):
                                 failed = True
 
                 # Validate license is a valid SPDX ID
-                if plugin_json["license"] not in valid_license_ids:
+                valid = validate_license_id(valid_license_ids, plugin_json["license"])
+                if not valid:
                     output.append("Invalid license ID: %s" % plugin_json["license"])
                     output.append("-- License must be a valid Identifier from https://spdx.org/licenses/")
                     failed = True
