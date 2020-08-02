@@ -98,7 +98,7 @@ def get_spdx_license_ids():
 
 
 def validate_license_id(valid_license_ids, license_id):
-    return (license_id not in valid_license_ids and license_id in INVALID_LICENSE_IDS)
+    return (license_id in valid_license_ids and license_id not in INVALID_LICENSE_IDS)
 
 
 def get_manifest_diff(repo_path, submodule_sha, head_sha):
