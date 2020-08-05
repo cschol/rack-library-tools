@@ -48,6 +48,7 @@ def get_source_dir(root_dir, plugin_name):
 def run(cmd, dir, build_env):
     return subprocess.check_output(cmd.split(" "),
         env=build_env,
+        stderr=subprocess.STDOUT,
         cwd=dir)
 
 
