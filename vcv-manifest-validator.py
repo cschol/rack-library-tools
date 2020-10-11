@@ -171,7 +171,7 @@ def main(argv=None):
                     raise Exception("Invalid plugin path: %s" % plugin_path)
 
                 manifest = os.path.join(plugin_path, "plugin.json")
-                with open(manifest, 'r') as p:
+                with open(manifest, 'r', encoding='utf-8') as p:
                     plugin_json = json.load(p)
 
                 valid_tags = get_valid_tags()
@@ -244,14 +244,16 @@ def main(argv=None):
                         head_sha = get_plugin_head_sha(plugin_path)
 
                         # Validate plugin version has been updated.
-                        try:
-                            old_version = get_plugin_version(plugin_path, submodule_sha)
-                            new_version = get_plugin_version(plugin_path, head_sha)
-                            if old_version == new_version:
-                                output.append("Version needs update! Current version: %s" % old_version)
-                                failed = True
-                        except Exception as e:
-                            pass # Skip if no previous version available.
+                        # If SHA of submodule is the same as HEAD, skip this. Version will be the same.
+                        if submodule_sha != head_sha:
+                            try:
+                                old_version = get_plugin_version(plugin_path, submodule_sha)
+                                new_version = get_plugin_version(plugin_path, head_sha)
+                                if old_version == new_version:
+                                    output.append("Version needs update! Current version: %s" % old_version)
+                                    failed = True
+                            except Exception as e:
+                                pass # Skip if no version available.
 
                         # Validate plugins slugs have not changed or module was not removed.
                         diff = get_manifest_diff(plugin_path, submodule_sha, head_sha)
