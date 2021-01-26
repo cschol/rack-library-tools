@@ -6,6 +6,7 @@ import traceback
 import glob
 import subprocess
 import requests
+import re
 
 
 URL_KEYS = ["pluginUrl", "authorUrl", "manualUrl", "sourceUrl", "changelogUrl"]
@@ -104,6 +105,32 @@ def validate_license_id(valid_license_ids, license_id):
 def get_manifest_diff(repo_path, submodule_sha, head_sha):
     cmd = "git diff --word-diff %s %s plugin.json" % (submodule_sha, head_sha)
     return subprocess.check_output(cmd.split(" "), cwd=repo_path).decode("UTF-8")
+
+
+def get_manifest_at_revision(repo_path, sha):
+    cmd = "git show %s:plugin.json" % (sha)
+    return subprocess.check_output(cmd.split(" "), cwd=repo_path).decode("UTF-8")
+
+
+def check_for_slug_changes(repo_path, submodule_sha, head_sha):
+    prev_manifest = json.loads(get_manifest_at_revision(repo_path, submodule_sha))
+    new_manifest = json.loads(get_manifest_at_revision(repo_path, head_sha))
+
+    changed = False
+    changed_slugs = []
+
+    prev_slugs = [module["slug"] for module in prev_manifest["modules"]]
+    new_slugs = [module["slug"] for module in new_manifest["modules"]]
+
+    for index, slug in enumerate(prev_slugs):
+        if slug not in new_slugs:
+            # Slug removal detected. That's only OK if slug was disabled in previous manifest.
+            if not "disabled" in prev_manifest["modules"][index].keys() or \
+               prev_manifest["modules"][index]["disabled"] != True:
+                changed_slugs.append(slug)
+                changed = True
+
+    return (changed, changed_slugs)
 
 
 def validate_tags(tags, valid_tags):
@@ -235,6 +262,12 @@ def main(argv=None):
                     output.append("-- License must be a valid Identifier from https://spdx.org/licenses/")
                     failed = True
 
+                # License can now be a URL, too. Validate it.
+                if re.match("^https?\:\/\/", plugin_json["license"]) is not None:
+                    if validate_url(plugin_json["license"]):
+                        output.append("Invalid license URL: %s" % plugin_json["license"])
+                        failed = True
+
                 # Additional validations based on previous versions of the plugin.
                 # Only applies if the repository is a submodule with a previously recorded SHA.
                 if os.path.exists(os.path.join(os.path.dirname(plugin_root), ".gitmodules")):
@@ -256,15 +289,10 @@ def main(argv=None):
                                 pass # Skip if no version available.
 
                         # Validate plugins slugs have not changed or module was not removed.
-                        diff = get_manifest_diff(plugin_path, submodule_sha, head_sha)
-                        for line in diff.split('\n'):
-                            # If the slug has CHANGED or REMOVED the slug line will contain a "[-" to indicate
-                            # that something was changed/removed in the git diff.
-                            # If a slug was ADDED it will be ignored (line contains "{+").
-                            # If a slug was REMOVED and a slug was ADDED it will show up as a change.
-                            if "slug" in line and "[-" in line:
-                                output.append("Slug change detected: %s" % line.strip())
-                                failed = True
+                        (failed, changed_slugs) = check_for_slug_changes(plugin_path, submodule_sha, head_sha)
+                        if failed:
+                            output.append("Slug changes detected: %s" % ", ".join(changed_slugs))
+                            failed = True
 
             except FileNotFoundError as e:
                 # No plugin.json to validate. Ignore.
