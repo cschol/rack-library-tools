@@ -145,6 +145,10 @@ def validate_url(url):
     import httplib2
     import urllib.parse
 
+    # File-type URLs are not allowed in the plugin manifest.
+    if url.startswith("file:"):
+        return 1
+
     try:
         p = urllib.parse.urlparse(url)
         conn = httplib2.HTTPConnectionWithTimeout(p.netloc)
