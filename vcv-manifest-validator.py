@@ -11,7 +11,8 @@ import re
 
 URL_KEYS = ["pluginUrl", "authorUrl", "manualUrl", "sourceUrl", "changelogUrl"]
 SPDX_URL = "https://raw.githubusercontent.com/spdx/license-list-data/master/json/licenses.json"
-RACK_TAG_CPP_URL = "https://raw.githubusercontent.com/VCVRack/Rack/v1/src/tag.cpp"
+RACK_V1_TAG_CPP_URL = "https://raw.githubusercontent.com/VCVRack/Rack/v1/src/tag.cpp"
+RACK_V2_TAG_CPP_URL = "https://raw.githubusercontent.com/VCVRack/Rack/v2/src/tag.cpp"
 
 REQUIRED_TOP_LEVEL_KEYS = [
     "slug",
@@ -73,8 +74,8 @@ def get_plugin_version(plugin_path, sha):
         raise
 
 
-def get_valid_tags():
-    tag_cpp = requests.get(RACK_TAG_CPP_URL).text
+def get_valid_tags(rack_tag_cpp_url):
+    tag_cpp = requests.get(rack_tag_cpp_url).text
     tags = []
     capture_tags = False
     for line in tag_cpp.split("\n"):
@@ -205,7 +206,12 @@ def main(argv=None):
                 with open(manifest, 'r', encoding='utf-8') as p:
                     plugin_json = json.load(p)
 
-                valid_tags = get_valid_tags()
+                if int(plugin_json["version"][0]) < 2:
+                    rack_tag_cpp_url = RACK_V1_TAG_CPP_URL
+                else:
+                    rack_tag_cpp_url = RACK_V2_TAG_CPP_URL
+                valid_tags = get_valid_tags(rack_tag_cpp_url)
+
                 valid_license_ids = get_spdx_license_ids()
 
                 # Validate top-level manifest keys
@@ -244,7 +250,7 @@ def main(argv=None):
                             invalid_slug = True
 
                 if invalid_tag:
-                    output.append("-- Valid tags are defined in %s" % RACK_TAG_CPP_URL)
+                    output.append("-- Valid tags are defined in %s" % rack_tag_cpp_url)
                     failed = True
 
                 if invalid_slug:
