@@ -7,6 +7,7 @@ import glob
 import subprocess
 import requests
 import re
+from urllib import request
 
 
 URL_KEYS = ["pluginUrl", "authorUrl", "manualUrl", "sourceUrl", "changelogUrl"]
@@ -92,7 +93,6 @@ def get_valid_tags(rack_tag_cpp_url):
 
 
 def get_spdx_license_ids():
-    import requests
     license_json = json.loads(
         requests.get(SPDX_URL).text
         )
@@ -101,7 +101,6 @@ def get_spdx_license_ids():
 
 def validate_license_id(valid_license_ids, license_id):
     return (license_id in valid_license_ids and license_id not in INVALID_LICENSE_IDS)
-
 
 def get_manifest_diff(repo_path, submodule_sha, head_sha):
     cmd = "git diff --word-diff %s %s plugin.json" % (submodule_sha, head_sha)
@@ -143,19 +142,13 @@ def validate_tags(tags, valid_tags):
 
 
 def validate_url(url):
-    import httplib2
-    import urllib.parse
-
     # File-type URLs are not allowed in the plugin manifest.
     if url.startswith("file:"):
         return 1
 
     try:
-        p = urllib.parse.urlparse(url)
-        conn = httplib2.HTTPConnectionWithTimeout(p.netloc)
-        conn.request('HEAD', p.path)
-        resp = conn.getresponse()
-        return resp.status >= 400
+        with request.urlopen(url) as u:
+            pass
     except Exception as e:
         print("\nException validating URL: %s (%s)" % (url, e))
         return 1
@@ -299,8 +292,8 @@ def main(argv=None):
                                 pass # Skip if no version available.
 
                         # Validate plugins slugs have not changed or module was not removed.
-                        (failed, changed_slugs) = check_for_slug_changes(plugin_path, submodule_sha, head_sha)
-                        if failed:
+                        (slug_changed, changed_slugs) = check_for_slug_changes(plugin_path, submodule_sha, head_sha)
+                        if slug_changed:
                             output.append("Slug changes detected: %s" % ", ".join(changed_slugs))
                             failed = True
 
