@@ -199,7 +199,14 @@ def main(argv=None):
                 with open(manifest, 'r', encoding='utf-8') as p:
                     plugin_json = json.load(p)
 
-                if int(plugin_json["version"][0]) < 2:
+                plugin_version = plugin_json["version"]
+
+                # Check that license string does not contain spaces
+                if ' ' in plugin_version:
+                    output.append("%s: invalid plugin version containing whitespace" % (plugin_version))
+                    failed = True
+
+                if int(plugin_version[0]) < 2:
                     rack_tag_cpp_url = RACK_V1_TAG_CPP_URL
                 else:
                     rack_tag_cpp_url = RACK_V2_TAG_CPP_URL
