@@ -9,7 +9,6 @@ import requests
 import re
 from urllib import request
 
-
 URL_KEYS = ["pluginUrl", "authorUrl", "manualUrl", "sourceUrl", "changelogUrl"]
 SPDX_URL = "https://raw.githubusercontent.com/spdx/license-list-data/master/json/licenses.json"
 RACK_V1_TAG_CPP_URL = "https://raw.githubusercontent.com/VCVRack/Rack/v1/src/tag.cpp"
@@ -147,11 +146,15 @@ def validate_url(url):
         return 1
 
     try:
-        with request.urlopen(url) as u:
+        # Add user agent to our request since some websites don't like not having one.
+        req = request.Request(url=url)
+        req.add_header('user-agent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')
+        with request.urlopen(req) as u:
             pass
     except Exception as e:
         print("\nException validating URL: %s (%s)" % (url, e))
         return 1
+    return 0
 
 
 def validate_slug(slug):
