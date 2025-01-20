@@ -33,6 +33,13 @@ INVALID_LICENSE_IDS = [
     "GPL-3.0"
 ]
 
+def is_lower(old_version, new_version):
+    """Determine if new_version is lower than old_version."""
+    (old_major, old_minor, old_revision) = old_version.split(".")
+    (new_major, new_minor, new_revision) = new_version.split(".")
+    _is_lower = lambda v1, v2: not v1.isdigit() if v1.isdigit() is not v2.isdigit() else v1 < v2
+    return _is_lower(new_major, old_major) or _is_lower(new_minor, old_minor) or _is_lower(new_revision, old_revision)
+
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
@@ -111,7 +118,13 @@ def get_manifest_at_revision(repo_path, sha):
     return subprocess.check_output(cmd.split(" "), cwd=repo_path).decode("UTF-8")
 
 
-def check_for_slug_changes(repo_path, submodule_sha, head_sha):
+def check_for_plugin_slug_change(repo_path, submodule_sha, head_sha):
+    prev_slug = json.loads(get_manifest_at_revision(repo_path, submodule_sha))["slug"]
+    new_slug = json.loads(get_manifest_at_revision(repo_path, head_sha))["slug"]
+
+    return (prev_slug != new_slug, new_slug)
+
+def check_for_module_slug_changes(repo_path, submodule_sha, head_sha):
     prev_manifest = json.loads(get_manifest_at_revision(repo_path, submodule_sha))
     new_manifest = json.loads(get_manifest_at_revision(repo_path, head_sha))
 
@@ -276,7 +289,7 @@ def main(argv=None):
                     failed = True
 
                 # License can now be a URL, too. Validate it.
-                if re.match("^https?\:\/\/", plugin_json["license"]) is not None:
+                if re.match("^https?\\:\\/\\/", plugin_json["license"]) is not None:
                     if validate_url(plugin_json["license"]):
                         output.append("Invalid license URL: %s" % plugin_json["license"])
                         failed = True
@@ -295,16 +308,24 @@ def main(argv=None):
                             try:
                                 old_version = get_plugin_version(plugin_path, submodule_sha)
                                 new_version = get_plugin_version(plugin_path, head_sha)
-                                if old_version == new_version:
-                                    output.append("Version needs update! Current version: %s" % old_version)
+                                if is_lower(old_version, new_version):
+                                    output.append("New version %s not greater than old version %s!" % (new_version, old_version))
                                     failed = True
+
                             except Exception as e:
+                                print(e)
                                 pass # Skip if no version available.
 
-                        # Validate plugins slugs have not changed or module was not removed.
-                        (slug_changed, changed_slugs) = check_for_slug_changes(plugin_path, submodule_sha, head_sha)
-                        if slug_changed:
-                            output.append("Slug changes detected: %s" % ", ".join(changed_slugs))
+                        # Validate that plugin's slug has not changed.
+                        (plugin_slug_changed, changed_plugin_slug) = check_for_plugin_slug_change(plugin_path, submodule_sha, head_sha)
+                        if plugin_slug_changed:
+                            output.append("Plugin slug change deteced: %s" % changed_plugin_slug)
+                            failed = True
+
+                        # Validate that plugin's module slugs have not changed or module was not removed.
+                        (module_slug_changed, changed_module_slugs) = check_for_module_slug_changes(plugin_path, submodule_sha, head_sha)
+                        if module_slug_changed:
+                            output.append("Module slug changes detected: %s" % ", ".join(changed_module_slugs))
                             failed = True
 
             except FileNotFoundError as e:
