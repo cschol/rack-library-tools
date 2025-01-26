@@ -33,8 +33,9 @@ INVALID_LICENSE_IDS = [
     "GPL-3.0"
 ]
 
+
 def is_lower(old_version, new_version):
-    """Determine if new_version is lower than old_version."""
+    """Determine if new_version is lower than old_version. Per Rack versioning scheme."""
     (old_major, old_minor, old_revision) = old_version.split(".")
     (new_major, new_minor, new_revision) = new_version.split(".")
     _is_lower = lambda v1, v2: not v1.isdigit() if v1.isdigit() is not v2.isdigit() else v1 < v2
