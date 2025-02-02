@@ -38,8 +38,8 @@ def is_lower(old_version, new_version):
     """Determine if new_version is lower than old_version. Per Rack versioning scheme."""
     (old_major, old_minor, old_revision) = old_version.split(".")
     (new_major, new_minor, new_revision) = new_version.split(".")
-    _is_lower = lambda v1, v2: not v1.isdigit() if v1.isdigit() is not v2.isdigit() else v1 < v2
-    return _is_lower(new_major, old_major) or _is_lower(new_minor, old_minor) or _is_lower(new_revision, old_revision)
+    _is_lower = lambda v1, v2: not v1.isdigit() if v1.isdigit() is not v2.isdigit() else v1 >= v2
+    return _is_lower(old_major, new_major) and _is_lower(old_minor, new_minor) and _is_lower(old_revision, new_revision)
 
 
 def parse_args(argv):
