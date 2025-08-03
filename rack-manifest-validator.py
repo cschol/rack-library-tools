@@ -7,7 +7,8 @@ import glob
 import subprocess
 import requests
 import re
-from urllib import request
+import urllib.request
+import urllib.error
 
 URL_KEYS = ["pluginUrl", "authorUrl", "manualUrl", "sourceUrl", "changelogUrl"]
 SPDX_URL = "https://raw.githubusercontent.com/spdx/license-list-data/master/json/licenses.json"
@@ -173,21 +174,32 @@ def validate_tags(tags, valid_tags):
     return invalid_tags if invalid_tags else None
 
 
-def validate_url(url):
+def is_valid_url(url):
     # File-type URLs are not allowed in the plugin manifest.
     if url.startswith("file:"):
         return 1
 
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Referer': 'https://www.google.com',
+        'Connection': 'keep-alive'
+    }
+    request = urllib.request.Request(url, headers=headers)
+
     try:
-        # Add user agent to our request since some websites don't like not having one.
-        req = request.Request(url=url)
-        req.add_header('user-agent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')
-        with request.urlopen(req) as u:
-            pass
+        with urllib.request.urlopen(request, timeout=5) as response:
+            status_code = response.status
+            return 200 <= status_code < 400
+    except urllib.error.HTTPError as e:
+        print(f"HTTPError: {e.code} - {e.reason}")
+    except urllib.error.URLError as e:
+        print(f"URLError: {e.reason}")
     except Exception as e:
-        print("\nException validating URL: %s (%s)" % (url, e))
-        return 1
-    return 0
+        print(f"Unexpected error: {e}")
+    return False
 
 
 def validate_slug(slug):
@@ -297,7 +309,7 @@ def main(argv=None):
                 for key in URL_KEYS:
                     if key in plugin_json.keys():
                         if plugin_json[key]:
-                          if validate_url(plugin_json[key]):
+                          if not is_valid_url(plugin_json[key]):
                                 output.append("Invalid URL: %s" % plugin_json[key])
                                 failed = True
 
@@ -310,7 +322,7 @@ def main(argv=None):
 
                 # License can now be a URL, too. Validate it.
                 if re.match("^https?\\:\\/\\/", plugin_json["license"]) is not None:
-                    if validate_url(plugin_json["license"]):
+                    if not is_valid_url(plugin_json["license"]):
                         output.append("Invalid license URL: %s" % plugin_json["license"])
                         failed = True
 
