@@ -33,13 +33,32 @@ INVALID_LICENSE_IDS = [
     "GPL-3.0"
 ]
 
+class Version:
+    """
+    Version class that implements version comparison analogous to Rack.
+    """
+    def __init__(self, s):
+        self.original = s
+        self.parts = s.split('.')
 
-def is_lower(old_version, new_version):
-    """Determine if new_version is lower than old_version. Per Rack versioning scheme."""
-    (old_major, old_minor, old_revision) = old_version.split(".")
-    (new_major, new_minor, new_revision) = new_version.split(".")
-    _is_lower = lambda v1, v2: not v1.isdigit() if v1.isdigit() is not v2.isdigit() else v1 >= v2
-    return _is_lower(old_major, new_major) and _is_lower(old_minor, new_minor) and _is_lower(old_revision, new_revision)
+    def __str__(self):
+        return self.original
+
+    def _key(self):
+        def part_key(p):
+            try:
+                # Integers get (1, int_value) → higher priority
+                return (1, int(p))
+            except ValueError:
+                # Strings get (0, str_value) → lower priority
+                return (0, p)
+        return [part_key(p) for p in self.parts]
+
+    def __lt__(self, other):
+        return self._key() < other._key()
+
+    def __eq__(self, other):
+        return self._key() == other._key()
 
 
 def parse_args(argv):
@@ -267,7 +286,7 @@ def main(argv=None):
                             invalid_slug = True
 
                 if invalid_tag:
-                    output.append("-- Valid tags are defined in %s" % rack_tag_cpp_url)
+                    output.append("-- Valid tags are defined in %s.\nSend an email to support@vcvrack.com to request new tags to be added to the database." % rack_tag_cpp_url)
                     failed = True
 
                 if invalid_slug:
@@ -309,7 +328,7 @@ def main(argv=None):
                             try:
                                 old_version = get_plugin_version(plugin_path, submodule_sha)
                                 new_version = get_plugin_version(plugin_path, head_sha)
-                                if is_lower(old_version, new_version):
+                                if Version(old_version) < Version(new_version):
                                     output.append("New version %s not greater than old version %s!" % (new_version, old_version))
                                     failed = True
 
