@@ -2,7 +2,6 @@ import sys
 import os
 import argparse
 import json
-import traceback
 import glob
 import subprocess
 import requests
@@ -33,6 +32,7 @@ REQUIRED_MODULE_KEYS = [
 INVALID_LICENSE_IDS = [
     "GPL-3.0"
 ]
+
 
 class Version:
     """
@@ -129,6 +129,7 @@ def get_spdx_license_ids():
 def validate_license_id(valid_license_ids, license_id):
     return (license_id in valid_license_ids and license_id not in INVALID_LICENSE_IDS)
 
+
 def get_manifest_diff(repo_path, submodule_sha, head_sha):
     cmd = "git diff --word-diff %s %s plugin.json" % (submodule_sha, head_sha)
     return subprocess.check_output(cmd.split(" "), cwd=repo_path).decode("UTF-8")
@@ -144,6 +145,7 @@ def check_for_plugin_slug_change(repo_path, submodule_sha, head_sha):
     new_slug = json.loads(get_manifest_at_revision(repo_path, head_sha))["slug"]
 
     return (prev_slug != new_slug, new_slug)
+
 
 def check_for_module_slug_changes(repo_path, submodule_sha, head_sha):
     prev_manifest = json.loads(get_manifest_at_revision(repo_path, submodule_sha))
@@ -202,11 +204,11 @@ def is_valid_url(url):
     return False
 
 
-def validate_slug(slug):
+def is_valid_slug(slug):
     for c in slug:
         if not (c.isalnum() or c == '-' or c == '_'):
-            return 1
-    return 0
+            return False
+    return True
 
 
 def main(argv=None):
@@ -269,7 +271,7 @@ def main(argv=None):
                         failed = True
 
                 # Validate plugin slug
-                if validate_slug(plugin_json["slug"]):
+                if not is_valid_slug(plugin_json["slug"]):
                     output.append("%s: invalid plugin slug" % (plugin_json["slug"]))
                     failed = True
 
@@ -293,7 +295,7 @@ def main(argv=None):
 
                     # Validate slugs
                     if "slug" in module.keys():
-                        if validate_slug(module["slug"]):
+                        if not is_valid_slug(module["slug"]):
                             output.append("%s: invalid module slug" % (module["slug"]))
                             invalid_slug = True
 
@@ -340,7 +342,7 @@ def main(argv=None):
                             try:
                                 old_version = get_plugin_version(plugin_path, submodule_sha)
                                 new_version = get_plugin_version(plugin_path, head_sha)
-                                if Version(old_version) < Version(new_version):
+                                if Version(new_version) < Version(old_version):
                                     output.append("New version %s not greater than old version %s!" % (new_version, old_version))
                                     failed = True
 
