@@ -342,7 +342,7 @@ def main(argv=None):
                             try:
                                 old_version = get_plugin_version(plugin_path, submodule_sha)
                                 new_version = get_plugin_version(plugin_path, head_sha)
-                                if Version(new_version) < Version(old_version):
+                                if not Version(new_version) > Version(old_version):
                                     output.append("New version %s not greater than old version %s!" % (new_version, old_version))
                                     failed = True
 
